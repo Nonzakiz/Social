@@ -2,6 +2,8 @@ const express = require('express')
 const router = express.Router()
 const gravatar = require('gravatar')
 const bcrypt = require('bcryptjs')
+const jwt = require('jsonwebtoken')
+const config = require('config')
 const {check,validationResult} = require('express-validator')
 
 const User = require('../../models/User')
@@ -23,7 +25,7 @@ async (req,res)=>{
 
     const {name,email,password} = req.body
     try {
-let user = await User.findOne({ email})
+    let user = await User.findOne({ email})
         if(user){
             res.status(400).json({errors: [{msg: 'User already exists'}]})
         }
@@ -44,6 +46,19 @@ let user = await User.findOne({ email})
         user.password = await bcrypt.hash(password, salt)
 
         await user.save()
+        const payload ={
+            user:{
+                id:user.id
+
+            }
+        }
+        jwt.sign(payload,config.get('jwtSecret'),
+        {expiresIn:360000},
+        (err,token)=>{
+            if(err) throw err
+            res.json({token})
+        }
+        )
 
         res.send('User register')
     }catch (err){
